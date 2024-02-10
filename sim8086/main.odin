@@ -5,6 +5,7 @@ import "core:os"
 
 main :: proc() {
     populate_decoder()
+    fmt.println("Decoded:", decode_opcode(0b10110001))
     bin_name := os.args[0]
     args := os.args[1:]
     if (len(args) < 1) {
@@ -26,7 +27,7 @@ main :: proc() {
     }
 }
 
-INSTRUCTION_MASKS := [Instruction_Type][2]u8 {
+OPCODE_MASKS := [Opcode][2]u8 {
     .None = 0,
     .Mov_RegMem_To_Reg = {0b1001000, 6},
     .Mov_Im_To_RegMem = {0b11000110, 7},
@@ -35,15 +36,25 @@ INSTRUCTION_MASKS := [Instruction_Type][2]u8 {
     .Mov_Ax_To_Mem = {0b10100010, 7},
 }
 
-INSTRUCTION_DECODER: [1024]Instruction_Type
+OPCODE_DECODER: [1024]Opcode
 
-Instruction_Type :: enum {
+Opcode :: enum {
     None,
     Mov_RegMem_To_Reg,
     Mov_Im_To_RegMem,
     Mov_Im_To_Reg,
     Mov_Mem_To_Ax,
     Mov_Ax_To_Mem,
+}
+
+// combination of rem/mod etc.
+Instruction_Type :: enum {
+    None,
+    Mov_RegMem_RegMem_No_Disp,
+    Mov_RegMem_RegMem_8_Disp,
+    Mov_RegMem_RegMem_16_Disp,
+    Mov_RegMem_RegMem_Direct,
+    Mov_Reg_Reg,
 }
 
 Options :: bit_set[Option]
@@ -56,6 +67,7 @@ Instruction :: struct {
     type: Instruction_Type,
     from, to: u8,
     options: Options,
+    data: u16,
 }
 
 parse_instructions :: proc(data: []u8) -> (instr_slice: []Instruction, ok := true) {
@@ -65,26 +77,61 @@ parse_instructions :: proc(data: []u8) -> (instr_slice: []Instruction, ok := tru
     }
 
     for i := 0; i < len(data); {
-        instr := decode_instruction(data[i])
-        next_instruction := Instruction{type = instr}
-        #partial switch instr {
+        op := decode_opcode(data[i])
+        next_instruction := Instruction{}
+        #partial switch op {
         case .Mov_RegMem_To_Reg:
+            consumed := 2
             if i + 1 >= len(data) {
                 fmt.fprintln(os.stderr, "not enough data")
                 return {}, false
             }
             dst_byte := data[i + 1]
 
-            if (dst_byte >> 6) & 0x03 != 0x03 {
-                fmt.fprintln(os.stderr, "mod should specify both are registers!")
-                return {}, false
-            }  
-
+            mod := (dst_byte >> 6) & 0x03
             if data[i] & 0x01 != 0 {
                 next_instruction.options += {.W}
             }
             if data[i] & 0x02 != 0 {
                 next_instruction.options += {.D}
+            }
+            rm := dst_byte & 0b111
+            reg := (dst_byte >> 3) & 0b111
+
+            switch mod {
+            case 0b00: // 0 displacement with exception
+                if rm == 0b110 {
+                    if i + 3 >= len(data) {
+                        fmt.fprintln(os.stderr, "not enough data")
+                        return {}, false
+                    }
+                    disp := (cast(^u16) &data[i + 2])^
+                    next_instruction.data = disp
+                    consumed = 4
+                    next_instruction.type = .Mov_RegMem_RegMem_Direct
+                } else {
+                    next_instruction.type = .Mov_RegMem_RegMem_No_Disp
+                }
+            case 0b01: // 8 bit displacement
+                if i + 2 >= len(data) {
+                    fmt.fprintln(os.stderr, "not enough data")
+                    return {}, false
+                }
+                disp := data[i + 2]
+                next_instruction.data = u16(disp)
+                consumed = 3
+                next_instruction.type = .Mov_RegMem_RegMem_8_Disp
+            case 0b10: // 16 bit displacement
+                if i + 3 >= len(data) {
+                    fmt.fprintln(os.stderr, "not enough data")
+                    return {}, false
+                }
+                disp := (cast(^u16) &data[i + 2])^
+                next_instruction.data = disp
+                consumed = 4
+                next_instruction.type = .Mov_RegMem_RegMem_16_Disp
+            case 0b11: // reg to reg
+                next_instruction.type = .Mov_Reg_Reg
             }
 
             if .D in next_instruction.options {
@@ -96,9 +143,9 @@ parse_instructions :: proc(data: []u8) -> (instr_slice: []Instruction, ok := tru
             }
 
             append(&instrs, next_instruction)
-            i += 2
+            i += consumed
         case:
-            fmt.fprintf(os.stderr, "unknow instruction\n")
+            fmt.fprintf(os.stderr, "unknown instruction\n")
             fmt.fprintf(os.stderr, "%#b\n", data[i])
             return {}, false
         }
@@ -118,9 +165,30 @@ print_instrs :: proc(fname: string, instrs: []Instruction) {
 
     for instr in instrs {
         #partial switch instr.type {
-        case .Mov_RegMem_To_Reg:
+        case .Mov_Reg_Reg:
             w := int(.W in instr.options)
             fmt.printf("mov %s, %s\n", register_file[instr.to][w], register_file[instr.from][w])
+        case .Mov_RegMem_RegMem_No_Disp:
+            w := int(.W in instr.options)
+            if .D in instr.options {
+                fmt.printf("mov %s, [%s]\n", register_file[instr.to][w], rm_file[instr.from])
+            } else {
+                fmt.printf("mov [%s], %s\n", rm_file[instr.to], register_file[instr.from][w])
+            }
+        case .Mov_RegMem_RegMem_8_Disp, .Mov_RegMem_RegMem_16_Disp:
+            w := int(.W in instr.options)
+            if .D in instr.options {
+                fmt.printf("mov %s, [%s + %d]\n", register_file[instr.to][w], rm_file[instr.from], instr.data)
+            } else {
+                fmt.printf("mov [%s + %d], %s\n", rm_file[instr.to], instr.data, register_file[instr.from][w])
+            }
+        case .Mov_RegMem_RegMem_Direct:
+            w := int(.W in instr.options)
+            if .D in instr.options {
+                fmt.printf("mov %s, [%d]\n", register_file[instr.to][w], instr.data)
+            } else {
+                fmt.printf("mov [%d], %s\n", instr.data, register_file[instr.from][w])
+            }
         case:
             fmt.panicf("Unknown instruction: %v", instr)
         }
@@ -138,8 +206,19 @@ register_file := [?][2]string {
     {"bh", "di"},
 }
 
+rm_file := [?]string {
+    "bx + si",
+    "bx + di",
+    "bp + si",
+    "bp + di",
+    "si",
+    "di",
+    "bp",
+    "bx",
+}
+
 populate_decoder :: proc() {
-    for op, inst in INSTRUCTION_MASKS {
+    for op, inst in OPCODE_MASKS {
         inst_len := op[1]
         mask := op[0]
         pos := 1
@@ -147,20 +226,20 @@ populate_decoder :: proc() {
             bit := int((mask & (1 << u8(7 - i))) != 0)
             pos *= 2 + bit
         }
-        if INSTRUCTION_DECODER[pos] != .None {
-            fmt.panicf("Expected empty instruction for %v got: %v", inst, INSTRUCTION_DECODER[pos])
+        if OPCODE_DECODER[pos] != .None {
+            fmt.panicf("Expected empty instruction for %v got: %v", inst, OPCODE_DECODER[pos])
         }
-        assert(INSTRUCTION_DECODER[pos] == .None)
-        INSTRUCTION_DECODER[pos] = inst
+        assert(OPCODE_DECODER[pos] == .None)
+        OPCODE_DECODER[pos] = inst
     }
 }
 
-decode_instruction :: proc(opcode: byte) -> (result: Instruction_Type) {
+decode_opcode :: proc(opcode: byte) -> (result: Opcode) {
     pos := 1
     for i in 0..<8 {
         bit := int((opcode & (1 << u8(7 - i))) != 0)
         pos *= 2 + bit
-        result = INSTRUCTION_DECODER[pos]
+        result = OPCODE_DECODER[pos]
         if result != .None do break
     }
     return
