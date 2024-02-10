@@ -4,6 +4,7 @@ import "core:fmt"
 import "core:os"
 
 main :: proc() {
+    populate_decoder()
     bin_name := os.args[0]
     args := os.args[1:]
     if (len(args) < 1) {
@@ -25,8 +26,24 @@ main :: proc() {
     }
 }
 
+INSTRUCTION_MASKS := [Instruction_Type][2]u8 {
+    .None = 0,
+    .Mov_RegMem_To_Reg = {0b1001000, 6},
+    .Mov_Im_To_RegMem = {0b11000110, 7},
+    .Mov_Im_To_Reg = {0b10110000, 4},
+    .Mov_Mem_To_Ax = {0b10100000, 7},
+    .Mov_Ax_To_Mem = {0b10100010, 7},
+}
+
+INSTRUCTION_DECODER: [1024]Instruction_Type
+
 Instruction_Type :: enum {
-    Mov,
+    None,
+    Mov_RegMem_To_Reg,
+    Mov_Im_To_RegMem,
+    Mov_Im_To_Reg,
+    Mov_Mem_To_Ax,
+    Mov_Ax_To_Mem,
 }
 
 Options :: bit_set[Option]
@@ -48,9 +65,10 @@ parse_instructions :: proc(data: []u8) -> (instr_slice: []Instruction, ok := tru
     }
 
     for i := 0; i < len(data); {
-        if (data[i] >> 2) == 0b100010 {
-            instr := Instruction{type = .Mov}
-
+        instr := decode_instruction(data[i])
+        next_instruction := Instruction{type = instr}
+        #partial switch instr {
+        case .Mov_RegMem_To_Reg:
             if i + 1 >= len(data) {
                 fmt.fprintln(os.stderr, "not enough data")
                 return {}, false
@@ -63,23 +81,23 @@ parse_instructions :: proc(data: []u8) -> (instr_slice: []Instruction, ok := tru
             }  
 
             if data[i] & 0x01 != 0 {
-                instr.options += {.W}
+                next_instruction.options += {.W}
             }
             if data[i] & 0x02 != 0 {
-                instr.options += {.D}
+                next_instruction.options += {.D}
             }
 
-            if .D in instr.options {
-                instr.to = (dst_byte >> 3) & 0x07
-                instr.from = (dst_byte & 0x07)
+            if .D in next_instruction.options {
+                next_instruction.to = (dst_byte >> 3) & 0x07
+                next_instruction.from = (dst_byte & 0x07)
             } else {
-                instr.from = (dst_byte >> 3) & 0x07
-                instr.to = (dst_byte & 0x07)
+                next_instruction.from = (dst_byte >> 3) & 0x07
+                next_instruction.to = (dst_byte & 0x07)
             }
 
-            append(&instrs, instr)
+            append(&instrs, next_instruction)
             i += 2
-        } else {
+        case:
             fmt.fprintf(os.stderr, "unknow instruction\n")
             fmt.fprintf(os.stderr, "%#b\n", data[i])
             return {}, false
@@ -99,8 +117,8 @@ print_instrs :: proc(fname: string, instrs: []Instruction) {
     fmt.println()
 
     for instr in instrs {
-        switch instr.type {
-        case .Mov:
+        #partial switch instr.type {
+        case .Mov_RegMem_To_Reg:
             w := int(.W in instr.options)
             fmt.printf("mov %s, %s\n", register_file[instr.to][w], register_file[instr.from][w])
         case:
@@ -118,4 +136,32 @@ register_file := [?][2]string {
     {"ch", "bp"},
     {"dh", "si"},
     {"bh", "di"},
+}
+
+populate_decoder :: proc() {
+    for op, inst in INSTRUCTION_MASKS {
+        inst_len := op[1]
+        mask := op[0]
+        pos := 1
+        for i in 0..<inst_len {
+            bit := int((mask & (1 << u8(7 - i))) != 0)
+            pos *= 2 + bit
+        }
+        if INSTRUCTION_DECODER[pos] != .None {
+            fmt.panicf("Expected empty instruction for %v got: %v", inst, INSTRUCTION_DECODER[pos])
+        }
+        assert(INSTRUCTION_DECODER[pos] == .None)
+        INSTRUCTION_DECODER[pos] = inst
+    }
+}
+
+decode_instruction :: proc(opcode: byte) -> (result: Instruction_Type) {
+    pos := 1
+    for i in 0..<8 {
+        bit := int((opcode & (1 << u8(7 - i))) != 0)
+        pos *= 2 + bit
+        result = INSTRUCTION_DECODER[pos]
+        if result != .None do break
+    }
+    return
 }
