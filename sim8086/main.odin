@@ -8,18 +8,18 @@ main :: proc() {
     bin_name := os.args[0]
     args := os.args[1:]
     if (len(args) < 1) {
-        fmt.fprintln(os.stderr, "No binary file supplied")
+        fmt.eprintln("No binary file supplied")
         os.exit(1)
     }
 
     filename := args[0]
     if data, rok := os.read_entire_file(filename); !rok {
-        fmt.fprintf(os.stderr, "Error reading %s\n", filename)
+        fmt.eprintf("Error reading %s\n", filename)
         os.exit(1)
     } else {
         instrs, ok := parse_instructions(data)
         if !ok {
-            fmt.fprintln(os.stderr, "Error parsing file")
+            fmt.eprintln("Error parsing file")
             os.exit(1)
         }
         print_instrs(filename, instrs)
@@ -90,7 +90,7 @@ parse_instructions :: proc(data: []u8) -> (instr_slice: []Instruction, ok := tru
         case .Mov_RegMem_To_Reg:
             consumed = 2
             if i + 1 >= len(data) {
-                fmt.fprintln(os.stderr, "not enough data")
+                fmt.eprintln("not enough data")
                 return {}, false
             }
             dst_byte := data[i + 1]
@@ -109,7 +109,7 @@ parse_instructions :: proc(data: []u8) -> (instr_slice: []Instruction, ok := tru
             case 0b00: // 0 displacement with exception
                 if rm == 0b110 {
                     if i + 3 >= len(data) {
-                        fmt.fprintln(os.stderr, "not enough data")
+                        fmt.eprintln("not enough data")
                         return {}, false
                     }
                     disp := (cast(^u16) &data[i + 2])^
@@ -121,7 +121,7 @@ parse_instructions :: proc(data: []u8) -> (instr_slice: []Instruction, ok := tru
                 }
             case 0b01: // 8 bit displacement
                 if i + 2 >= len(data) {
-                    fmt.fprintln(os.stderr, "not enough data")
+                    fmt.eprintln("not enough data")
                     return {}, false
                 }
                 disp := data[i + 2]
@@ -130,7 +130,7 @@ parse_instructions :: proc(data: []u8) -> (instr_slice: []Instruction, ok := tru
                 next_instruction.type = .Mov_RegMem_RegMem_8_Disp
             case 0b10: // 16 bit displacement
                 if i + 3 >= len(data) {
-                    fmt.fprintln(os.stderr, "not enough data")
+                    fmt.eprintln("not enough data")
                     return {}, false
                 }
                 disp := (cast(^u16) &data[i + 2])^
@@ -160,7 +160,7 @@ parse_instructions :: proc(data: []u8) -> (instr_slice: []Instruction, ok := tru
                 consumed = 2
             }
             if i + consumed > len(data) {
-                fmt.fprintln(os.stderr, "not enough data")
+                fmt.eprintln("not enough data")
                 return {}, false
             }
 
@@ -176,7 +176,7 @@ parse_instructions :: proc(data: []u8) -> (instr_slice: []Instruction, ok := tru
             consumed = 2
             next_instruction.type = .Mov_Im_To_RegMem
             if i + consumed > len(data) {
-                fmt.fprintln(os.stderr, "not enough data")
+                fmt.eprintln("not enough data")
                 return {}, false
             }
 
@@ -208,7 +208,7 @@ parse_instructions :: proc(data: []u8) -> (instr_slice: []Instruction, ok := tru
                 next_instruction.options += {.W}
             }
             if i + consumed > len(data) {
-                fmt.fprintln(os.stderr, "not enough data")
+                fmt.eprintln("not enough data")
                 return {}, false
             }
 
@@ -221,15 +221,15 @@ parse_instructions :: proc(data: []u8) -> (instr_slice: []Instruction, ok := tru
                 next_instruction.options += {.W}
             }
             if i + consumed > len(data) {
-                fmt.fprintln(os.stderr, "not enough data")
+                fmt.eprintln("not enough data")
                 return {}, false
             }
 
             next_instruction.data = (cast(^u16) &data[i + 1])^
             
         case:
-            fmt.fprintf(os.stderr, "unknown instruction\n")
-            fmt.fprintf(os.stderr, "%#b\n", data[i])
+            fmt.eprintln("unknown instruction\n")
+            fmt.eprintf("%#b\n", data[i])
             return {}, false
         }
 
