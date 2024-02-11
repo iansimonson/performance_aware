@@ -5,7 +5,6 @@ import "core:os"
 
 main :: proc() {
     populate_decoder()
-    fmt.println("Decoded:", decode_opcode(0b10110001))
     bin_name := os.args[0]
     args := os.args[1:]
     if (len(args) < 1) {
@@ -54,7 +53,14 @@ Instruction_Type :: enum {
     Mov_RegMem_RegMem_8_Disp,
     Mov_RegMem_RegMem_16_Disp,
     Mov_RegMem_RegMem_Direct,
+    Mov_Im_RegMem_No_Disp,
+    Mov_Im_RegMem_8_Disp,
+    Mov_Im_RegMem_16_Disp,
+    Mov_Im_RegMem_Direct,
     Mov_Reg_Reg,
+    Mov_Im_To_Reg,
+    Mov_Ax_Mem,
+    Mov_Mem_Ax,
 }
 
 Options :: bit_set[Option]
@@ -79,9 +85,10 @@ parse_instructions :: proc(data: []u8) -> (instr_slice: []Instruction, ok := tru
     for i := 0; i < len(data); {
         op := decode_opcode(data[i])
         next_instruction := Instruction{}
+        consumed := 0
         #partial switch op {
         case .Mov_RegMem_To_Reg:
-            consumed := 2
+            consumed = 2
             if i + 1 >= len(data) {
                 fmt.fprintln(os.stderr, "not enough data")
                 return {}, false
@@ -142,13 +149,92 @@ parse_instructions :: proc(data: []u8) -> (instr_slice: []Instruction, ok := tru
                 next_instruction.to = (dst_byte & 0x07)
             }
 
-            append(&instrs, next_instruction)
-            i += consumed
+        case .Mov_Im_To_Reg:
+            wide := data[i] & 0b00001000 != 0
+            consumed = 1
+            next_instruction.type = .Mov_Im_To_Reg
+            if wide {
+                next_instruction.options += {.W}
+                consumed = 3
+            } else {
+                consumed = 2
+            }
+            if i + consumed > len(data) {
+                fmt.fprintln(os.stderr, "not enough data")
+                return {}, false
+            }
+
+            reg := data[i] & 0b111
+            next_instruction.to = reg
+            if wide {
+                next_instruction.data = (cast(^u16) &data[i + 1])^
+            } else {
+                next_instruction.data = u16(data[i + 1])
+            }
+        case .Mov_Im_To_RegMem:
+            wide := data[i] & 0b1 != 0
+            consumed = 2
+            next_instruction.type = .Mov_Im_To_RegMem
+            if i + consumed > len(data) {
+                fmt.fprintln(os.stderr, "not enough data")
+                return {}, false
+            }
+
+            dst_byte := data[i + 1]
+            mod := dst_byte >> 6 & 0b11
+            reg := dst_byte >> 3 && 0b11
+            rm := dst_byte &0b11
+            if reg != 0 {
+                fmt.eprintln("immediate to regmem requires reg field to be 0, got", reg)
+                return {}, false
+            }
+            switch mod {
+            case 0b00:
+                if rm == 0b110 {
+                    if i + 6 > len(data) {
+                        fmt.eprintln("Not enough data")
+                        return {}, false
+                    }
+                    disp := (cast(^u16) &data[i + 2])^
+                    immed := (cast(^u16) &data[i + 4])^
+                    next_instruction.type = .Mov_Im_RegMem_Direct
+                }
+            }
+        case .Mov_Mem_To_Ax:
+            wide := data[i] & 0b1 != 0
+            consumed = 3
+            next_instruction.type = .Mov_Mem_Ax
+            if wide {
+                next_instruction.options += {.W}
+            }
+            if i + consumed > len(data) {
+                fmt.fprintln(os.stderr, "not enough data")
+                return {}, false
+            }
+
+            next_instruction.data = (cast(^u16) &data[i + 1])^
+        case .Mov_Ax_To_Mem:
+            wide := data[i] & 0b1 != 0
+            consumed = 3
+            next_instruction.type = .Mov_Ax_Mem
+            if wide {
+                next_instruction.options += {.W}
+            }
+            if i + consumed > len(data) {
+                fmt.fprintln(os.stderr, "not enough data")
+                return {}, false
+            }
+
+            next_instruction.data = (cast(^u16) &data[i + 1])^
+            
         case:
             fmt.fprintf(os.stderr, "unknown instruction\n")
             fmt.fprintf(os.stderr, "%#b\n", data[i])
             return {}, false
         }
+
+        append(&instrs, next_instruction)
+        i += consumed
     }
 
     instr_slice = instrs[:]
@@ -189,6 +275,15 @@ print_instrs :: proc(fname: string, instrs: []Instruction) {
             } else {
                 fmt.printf("mov [%d], %s\n", instr.data, register_file[instr.from][w])
             }
+        case .Mov_Im_To_Reg:
+            w := int(.W in instr.options)
+            fmt.printf("mov %s, %d\n", register_file[instr.to][w], instr.data)
+        case .Mov_Ax_Mem:
+            w := int(.W in instr.options)
+            fmt.printf("mov [%d], %s\n", instr.data, register_file[0][w])
+        case .Mov_Mem_Ax:
+            w := int(.W in instr.options)
+            fmt.printf("mov %s, [%d]\n", register_file[0][w], instr.data)
         case:
             fmt.panicf("Unknown instruction: %v", instr)
         }
