@@ -1,2 +1,6 @@
 listing_out/
 *.exe
+*.pdb
+*.raddbg
+data_*.json
+diffs_*.f64
