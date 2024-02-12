@@ -7,32 +7,23 @@ import "core:strconv"
 import "core:fmt"
 import "core:math"
 import "core:slice"
-import "core:simd/x86"
 import "core:time"
 
-rdtsc :: x86._rdtsc
 
 main :: proc() {
-    start_time := time.now()
-    start_tick := rdtsc()
+    BEGIN_PROFILE()
+
     args := os.args[1:]
     if len(args) < 1 {
         usage()
         os.exit(1)
     }
 
-    begin_load_json := rdtsc()
-    data_fname := args[0]
-    json_data, jd_ok := os.read_entire_file(data_fname)
+    json_data := load_json_data(args[0])
 
-    if !jd_ok {
-        fmt.eprintln("Error reading json file")
-        os.exit(1)
-    }
-
-    begin_load_checks := rdtsc()
     check_data: []f64
     if len(args) == 2 {
+        TIME_SECTION("Load Checks File")
         check_fname := args[1]
         check_raw_data, check_ok := os.read_entire_file(check_fname)
         if !check_ok {
@@ -42,7 +33,7 @@ main :: proc() {
         check_data = slice.reinterpret([]f64, check_raw_data)
     }
 
-    begin_parsing := rdtsc()
+    json_parse_tb := BEGIN_TIME_SECTION("Parse JSON")
     pairs, p_ok := parse_pairs(string(json_data))
     if !p_ok {
         fmt.eprintln("Could not parse json data")
@@ -54,28 +45,28 @@ main :: proc() {
         assert(len(pairs) == len(check_data), "Was passed a check file that has a different number of pairs than the json data")
         do_check = true
     }
+    END_TIME_SECTION(json_parse_tb)
 
-    begin_computing := rdtsc()
 
     distance_sum: f64
     expected_sum: f64
     num_differences: int
-
-    for i in 0..<len(pairs) {
-        p := pairs[i]
-        distance := reference_haversine({p.x0, p.y0}, {p.x1, p.y1}, 6372.8)
-        distance_sum += distance
-        if do_check {
-            if check_data[i] == distance {
-                num_differences += 1
+    {
+        TIME_SECTION("Compute Haversines")
+    
+        for i in 0..<len(pairs) {
+            p := pairs[i]
+            distance := reference_haversine({p.x0, p.y0}, {p.x1, p.y1}, 6372.8)
+            distance_sum += distance
+            if do_check {
+                if check_data[i] == distance {
+                    num_differences += 1
+                }
+                expected_sum += distance
             }
-            expected_sum += distance
         }
+    
     }
-
-    done := rdtsc()
-    end := time.now()
-
     fmt.println("Computed haversines:")
     fmt.println("Input Size:", len(json_data))
     fmt.println("Num Pairs:", len(pairs))
@@ -85,20 +76,18 @@ main :: proc() {
     fmt.println("Reference sum:", expected_sum / f64(len(check_data)))
     fmt.println("Difference:", (distance_sum - expected_sum) / f64(len(check_data)))
 
-    total_ticks := done - start_tick
-    total_secs := time.duration_seconds(time.diff(start_time, end))
-    tps_ghz := (f64(total_ticks) / total_secs) / 1_000_000_000
-    fmt.println()
-    fmt.println("RDTSC-based perf info:")
-    fmt.printf("Ticks / second (GHz): %.3\n", tps_ghz)
-    fmt.printf("Startup: %v (%.3v%%)\n", begin_load_json - start_tick, f64(begin_load_json - start_tick) / 100 * f64(total_ticks))
-    fmt.printf("Load JSON File: %v (%.3v%%)\n", begin_load_checks - begin_load_json, 100 * f64(begin_load_checks - begin_load_json) / f64(total_ticks))
-    fmt.printf("Load Checks File (optional): %v (%.3v%%)\n", begin_parsing - begin_load_checks, 100 * f64(begin_parsing - begin_load_checks) / f64(total_ticks))
-    fmt.printf("Parse JSON file: %v (%.3v%%)\n", begin_computing - begin_parsing, 100 * f64(begin_computing - begin_parsing) / f64(total_ticks))
-    fmt.printf("Compute Haversines: %v (%.3v%%)\n", done - begin_computing, 100 * f64(done - begin_computing) / f64(total_ticks))
-    fmt.printf("Total ticks: %v\n", total_ticks)
-    fmt.printf("Total Time: %.3v secs\n", total_secs)
+    END_PROFILE_AND_PRINT()
+}
 
+load_json_data :: proc(data_fname: string) -> []u8 {
+    TIME_FUNCTION()
+    json_data, jd_ok := os.read_entire_file(data_fname)
+
+    if !jd_ok {
+        fmt.eprintln("Error reading json file")
+        os.exit(1)
+    }
+    return json_data
 }
 
 usage :: proc() {
