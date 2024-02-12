@@ -7,14 +7,21 @@ import "core:strconv"
 import "core:fmt"
 import "core:math"
 import "core:slice"
+import "core:simd/x86"
+import "core:time"
+
+rdtsc :: x86._rdtsc
 
 main :: proc() {
+    start_time := time.now()
+    start_tick := rdtsc()
     args := os.args[1:]
     if len(args) < 1 {
         usage()
         os.exit(1)
     }
 
+    begin_load_json := rdtsc()
     data_fname := args[0]
     json_data, jd_ok := os.read_entire_file(data_fname)
 
@@ -23,6 +30,7 @@ main :: proc() {
         os.exit(1)
     }
 
+    begin_load_checks := rdtsc()
     check_data: []f64
     if len(args) == 2 {
         check_fname := args[1]
@@ -34,6 +42,7 @@ main :: proc() {
         check_data = slice.reinterpret([]f64, check_raw_data)
     }
 
+    begin_parsing := rdtsc()
     pairs, p_ok := parse_pairs(string(json_data))
     if !p_ok {
         fmt.eprintln("Could not parse json data")
@@ -45,6 +54,8 @@ main :: proc() {
         assert(len(pairs) == len(check_data), "Was passed a check file that has a different number of pairs than the json data")
         do_check = true
     }
+
+    begin_computing := rdtsc()
 
     distance_sum: f64
     expected_sum: f64
@@ -62,6 +73,9 @@ main :: proc() {
         }
     }
 
+    done := rdtsc()
+    end := time.now()
+
     fmt.println("Computed haversines:")
     fmt.println("Input Size:", len(json_data))
     fmt.println("Num Pairs:", len(pairs))
@@ -71,6 +85,19 @@ main :: proc() {
     fmt.println("Reference sum:", expected_sum / f64(len(check_data)))
     fmt.println("Difference:", (distance_sum - expected_sum) / f64(len(check_data)))
 
+    total_ticks := done - start_tick
+    total_secs := time.duration_seconds(time.diff(start_time, end))
+    tps_ghz := (f64(total_ticks) / total_secs) / 1_000_000_000
+    fmt.println()
+    fmt.println("RDTSC-based perf info:")
+    fmt.printf("Ticks / second (GHz): %.3\n", tps_ghz)
+    fmt.printf("Startup: %v (%.3v%%)\n", begin_load_json - start_tick, f64(begin_load_json - start_tick) / 100 * f64(total_ticks))
+    fmt.printf("Load JSON File: %v (%.3v%%)\n", begin_load_checks - begin_load_json, 100 * f64(begin_load_checks - begin_load_json) / f64(total_ticks))
+    fmt.printf("Load Checks File (optional): %v (%.3v%%)\n", begin_parsing - begin_load_checks, 100 * f64(begin_parsing - begin_load_checks) / f64(total_ticks))
+    fmt.printf("Parse JSON file: %v (%.3v%%)\n", begin_computing - begin_parsing, 100 * f64(begin_computing - begin_parsing) / f64(total_ticks))
+    fmt.printf("Compute Haversines: %v (%.3v%%)\n", done - begin_computing, 100 * f64(done - begin_computing) / f64(total_ticks))
+    fmt.printf("Total ticks: %v\n", total_ticks)
+    fmt.printf("Total Time: %.3v secs\n", total_secs)
 
 }
 
