@@ -110,6 +110,7 @@ parse_pairs :: proc(data: string) -> (result: []Pair, ok := true) {
     data = match(data, `"pairs":`) or_return
     data = match(data, "[") or_return
     for {
+        TIME_SECTION("Parse Pair")
         p: Pair
         if data, arr_end := match(data, "]"); arr_end {
             result = pairs[:]
