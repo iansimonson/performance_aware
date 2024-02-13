@@ -5,6 +5,24 @@ import "core:time"
 import "core:simd/x86"
 import "core:fmt"
 
+/*
+    This is about as close as I could get to Casey's version
+    using Odin (I could probably have done an array rather than a map)
+    it takes advantage of `@(deferred_out)` to make TIME_FUNCTION a one-liner
+
+    I recommend putting code you want to time in a new scope and using
+    TIME_SECTION however if for some reason you do not want to (e.g. needing to use
+    a variable in the next section) you can do BEGIN_TIME_SECTION/END_TIME_SECTION manually.
+    If you do so, it does require saving the TimedBlock and passing it to END_TIME_SECTION
+    
+    e.g.
+    ```odin
+    json_loading_tb := BEGIN_TIME_SECTION("Load JSON File")
+    /* code e.g. os.read_entire_file() */
+    END_TIME_SECTION(json_loading_tb)
+    ```
+*/
+
 rdtsc :: x86._rdtsc
 
 BEGIN_PROFILE :: proc(loc := #caller_location) {
