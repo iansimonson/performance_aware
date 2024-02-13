@@ -33,7 +33,6 @@ main :: proc() {
         check_data = slice.reinterpret([]f64, check_raw_data)
     }
 
-    json_parse_tb := BEGIN_TIME_SECTION("Parse JSON")
     pairs, p_ok := parse_pairs(string(json_data))
     if !p_ok {
         fmt.eprintln("Could not parse json data")
@@ -45,14 +44,12 @@ main :: proc() {
         assert(len(pairs) == len(check_data), "Was passed a check file that has a different number of pairs than the json data")
         do_check = true
     }
-    END_TIME_SECTION(json_parse_tb)
-
 
     distance_sum: f64
     expected_sum: f64
     num_differences: int
     {
-        TIME_SECTION("Compute Haversines")
+        TIME_SECTION("Compute Haversines", byte_count = len(pairs) * size_of(Pair))
     
         for i in 0..<len(pairs) {
             p := pairs[i]
@@ -80,7 +77,12 @@ main :: proc() {
 }
 
 load_json_data :: proc(data_fname: string) -> []u8 {
-    TIME_FUNCTION()
+    finfo, finfo_err := os.stat(data_fname)
+    if finfo_err != {} {
+        fmt.eprintln("Error stating file:", finfo_err)
+        os.exit(1)
+    }
+    TIME_FUNCTION(byte_count = int(finfo.size))
     json_data, jd_ok := os.read_entire_file(data_fname)
 
     if !jd_ok {
@@ -105,6 +107,8 @@ Pair :: struct {
 }
 
 parse_pairs :: proc(data: string) -> (result: []Pair, ok := true) {
+    TIME_FUNCTION(byte_count = len(data))
+
     pairs: [dynamic]Pair
     data := match(data, "{") or_return
     data = match(data, `"pairs":`) or_return
