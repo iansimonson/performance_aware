@@ -12,6 +12,6 @@ These should all work on any OS other than `query_perf_counters` which specifica
 1. `gen_haversines` - generates test code
 1. `compute_haversines` - the main code for pt3 that we are profiling and trying to improve
 1. `sim8086` - binary decoding of 8086 machine code
-`. `verify_binary` - small program to verify that a particular binary is identical to another one
+1. `verify_binary` - small program to verify that a particular binary is identical to another one
 
 Since I was starting later and the ASM course was done already, I only went up to decoding Add/Sub, etc. I feel comfortable _enough_ with asm that I'll come back to it later if I feel like it
