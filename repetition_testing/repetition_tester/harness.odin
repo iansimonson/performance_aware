@@ -5,6 +5,7 @@ import "core:time"
 
 Read_Params :: struct {
     buffer: []u8,
+    expected_bufsize: int,
     filename: string,
     alloc_mode: Alloc_Mode,
 }
@@ -25,6 +26,7 @@ Rep_Value :: enum {
 
 Alloc_Mode :: enum {
     None,
+    Malloc,
 }
 
 Repetition_Value :: [Rep_Value]int
@@ -48,40 +50,6 @@ Tester :: struct {
 
     results: Test_Results,
 }
-
-/*
-
-Going to rely on time.tick() which effectively does this for us and
-keeps the cpu_timer_freq in a thread-local variable inside odin's
-core library
-
-seconds_from_cpu_time :: proc(cpu_time: f64, cpu_timer_freq: u64) -> (result: f64) {
-    if cpu_timer_freq > 0 {
-        result = f64(cpu_time) / f64(cpu_timer_freq)
-    }
-    return
-}
-
-print_time_f64 :: proc(label: string, cpu_time: f64, cpu_timer_freq: u64, byte_count: int) {
-    fmt.printf("%s: %.0f", label, cpu_time)
-    if cpu_timer_freq > 0 {
-        seconds := seconds_from_cpu_time(cpu_time, cpu_timer_freq)
-        fmt.printf(" (%fms)", 1000.0 * seconds)
-
-        if byte_count > 0 {
-            gigabyte := (1024.0 * 1024.0 * 1024.0);
-            best_bandwidth := f64(byte_count) / (gigabyte * seconds);
-            fmt.printf(" %fgb/s", best_bandwidth);
-        }
-    }
-}
-
-print_time_u64 :: proc(label: string, cpu_time, cpu_timer_freq: u64, byte_count: int) {
-    print_time_f64(label, f64(cpu_time), cpu_timer_freq, byte_count)
-}
-
-print_time :: proc{print_time_f64, print_time_u64}
-*/
 
 print_time :: proc(label: string, cpu_time: time.Duration, byte_count: int) {
     seconds := time.duration_seconds(cpu_time)
@@ -189,29 +157,25 @@ is_testing :: proc(tester: ^Tester) -> bool {
     return tester.mode == .Testing
 }
 
-// Again using time.tick so don't necessarily need this
-// get_cpu_timer_freq :: proc() -> u64 {
-//     os_freq := get_os_timer_freq()
-//     cpu_start := rdtsc()
-//     os_start := time.now()
-//     os_elapsed: u64
-//     os_wait_time := os_freq * 100 / 1000
-//     for os_elapsed < os_wait_time {
-//         os_elapsed = time.since(os_start)
-//     }
+handle_allocation :: proc(params: Read_Params, buffer: ^[]u8) {
+    switch params.alloc_mode {
+    case .None:
+        /* nothing */
+    case .Malloc:
+        buffer^ = make([]u8, params.expected_bufsize)
+        assert(len(buffer) != 0)
+    case:
+        fmt.eprintln("ERROR: unrecognized allocation type")
+    }
+}
 
-//     cpu_end := rdtsc()
-//     cpu_elapsed = cpu_end - cpu_start
-//     cpu_freq: u64
-//     if os_elapsed > 0 {
-//         cpu_freq = os_freq * cpu_elapsed / os_elapsed
-//     }
-
-//     return cpu_freq
-// }
-
-// get_os_timer_freq :: proc() -> u64 {
-//     freq: u64
-//     windows.QueryPerformanceFrequency(&freq)
-//     return freq
-// }
+handle_deallocation :: proc(params: Read_Params, buffer: ^[]u8) {
+    switch params.alloc_mode {
+    case .None:
+        /* nothing */
+    case .Malloc:
+        delete(buffer^)
+    case:
+        fmt.eprintln("ERROR: unrecognized allocation type")
+    }
+}

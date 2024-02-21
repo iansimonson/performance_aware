@@ -19,6 +19,7 @@ main :: proc() {
 
         params: rep.Read_Params
         params.buffer = make([]u8, finfo.size)
+        params.expected_bufsize = int(finfo.size)
         params.filename = fname
 
         if len(params.buffer) == 0 {
@@ -31,10 +32,13 @@ main :: proc() {
         testers: [len(tests)]rep.Tester
         for {
             for test_func, i in tests {
-                tester := &testers[i]
-                fmt.printf("\n--- %s ---\n", test_func.name)
-                rep.new_test_wave(tester, len(params.buffer))
-                test_func.function(tester, &params)
+                for alloc_mode in rep.Alloc_Mode {
+                    tester := &testers[i]
+                    params.alloc_mode = alloc_mode
+                    fmt.printf("\n--- %v + %s ---\n", alloc_mode, test_func.name,)
+                    rep.new_test_wave(tester, len(params.buffer))
+                    test_func.function(tester, &params)
+                }
             }
             free_all(context.temp_allocator)
         }
@@ -42,8 +46,8 @@ main :: proc() {
 }
 
 tests := [?]Test_Function{
-    {"ReadViaReadFile", read_via_readfile},
     {"ReadViaFRead", read_via_fread},
+    {"ReadViaReadFile", read_via_readfile},
 }
 
 Test_Function :: struct {
@@ -59,9 +63,13 @@ read_via_fread : rep.Test_Proc : proc(t: ^rep.Tester, params: ^rep.Read_Params) 
             rep.error(t, "via_fread: fopen failed")
         } else {
             defer libc.fclose(f)
+
+            dest_buffer := params.buffer
+            rep.handle_allocation(params^, &dest_buffer)
             rep.begin_time(t)
             result := libc.fread(raw_data(params.buffer), len(params.buffer), 1, f)
             rep.end_time(t)
+            rep.handle_deallocation(params^, &dest_buffer)
 
             if result != 1 {
                 rep.error(t, "via_fread: fread failed")
@@ -79,6 +87,9 @@ read_via_readfile : rep.Test_Proc : proc(t: ^rep.Tester, params: ^rep.Read_Param
             rep.error(t, "via_readfile: open failed")
         } else {
             defer os.close(f)
+
+            dest_buffer := params.buffer
+            rep.handle_allocation(params^, &dest_buffer)
 
             size_remaining := len(params.buffer)
             buf_start := 0
@@ -98,6 +109,8 @@ read_via_readfile : rep.Test_Proc : proc(t: ^rep.Tester, params: ^rep.Read_Param
                 size_remaining -= read_bytes
                 buf_start += read_bytes
             }
+
+            rep.handle_deallocation(params^, &dest_buffer)
         }
     }
 }
