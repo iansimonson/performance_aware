@@ -3,6 +3,7 @@ package fread
 import "core:fmt"
 import "core:os"
 import "core:c/libc"
+import "core:path/filepath"
 
 import rep "../repetition_tester"
 
@@ -42,7 +43,19 @@ main :: proc() {
             }
             free_all(context.temp_allocator)
         }
+    } else {
+        usage()
+        os.exit(1)
     }
+}
+
+usage :: proc() {
+    bin_name := filepath.base(os.args[0])
+    fmt.eprintln("Usage:", bin_name, "<data file>")
+    fmt.eprintln("------------------------------")
+    fmt.eprintln()
+    fmt.eprintln("Runs repetition tests for fread and os.read() (ReadFile on windows)")
+    fmt.eprintln("Data File: can be any file, recommended being a large (> 1GB) json file")
 }
 
 tests := [?]Test_Function{
