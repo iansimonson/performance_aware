@@ -9,29 +9,15 @@ pagefaults. This is very windows specific though
 */
 
 import "core:sys/windows"
+import psapi "odin-psapi"
 
+PROCESS_MEMORY_COUNTERS :: psapi.PROCESS_MEMORY_COUNTERS
+GetProcessMemoryInfo :: psapi.GetProcessMemoryInfo
+
+// need to add these flags to current
+// process with OpenProcess
 PROCESS_QUERY_INFORMATION : windows.DWORD : 0x0400
 PROCESS_VM_READ : windows.DWORD : 0x0010
-
-foreign import psapi "system:psapi.lib"
-
-PROCESS_MEMORY_COUNTERS :: struct {
-    cb: windows.DWORD,
-    PageFaultCount: windows.DWORD,
-    PeakWorkingSetSize: windows.SIZE_T,
-    WorkingSetSize: windows.SIZE_T,
-    QuotaPeakPagedPoolUsage: windows.SIZE_T,
-    QuotaPagedPoolUsage: windows.SIZE_T,
-    QuotaPeakNonPagedPoolUsage: windows.SIZE_T,
-    QuotaNonPagedPoolUsage: windows.SIZE_T,
-    PagefileUsage: windows.SIZE_T,
-    PeakPagefileUsage: windows.SIZE_T,
-}
-
-@(default_calling_convention = "system")
-foreign psapi {
-    GetProcessMemoryInfo :: proc(Process: windows.HANDLE, ppsmemCounters: ^PROCESS_MEMORY_COUNTERS, cb: windows.DWORD) -> windows.BOOL ---
-}
 
 @(default_calling_convention = "system")
 foreign _ {
