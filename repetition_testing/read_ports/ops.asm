@@ -1,62 +1,57 @@
-global mov_x1
-global mov_x2
-global mov_x3
-global mov_x4
-global mov_x5
+global read_x1
+global read_x2
+global read_x3
+global read_x4
+global read_x5
 
 section .text
 
-mov_x1:
-    xor eax, eax
+read_x1:
+    align 64
 .loop:
-    mov [rdx + rax], al
-    inc rax
-    cmp rax, rcx
-    jb .loop
+    mov rax, [rdx]
+    sub rcx, 1
+    jnle .loop
     ret
 
-mov_x2:
-    xor eax, eax
+read_x2:
+    align 64
 .loop:
-    mov [rdx + rax], al
-    mov [rdx + rax + 1], al
-    add rax, 2
-    cmp rax, rcx
-    jb .loop
+    mov rax, [rdx]
+    mov rax, [rdx]
+    sub rcx, 2
+    jnle .loop
     ret
 
-mov_x3:
-    xor eax, eax
+read_x3:
+    align 64
 .loop:
-    mov [rdx + rax], al
-    mov [rdx + rax + 1], al
-    mov [rdx + rax + 2], al
-    add rax, 3
-    cmp rax, rcx
-    jb .loop
+    mov rax, [rdx]
+    mov rax, [rdx]
+    mov rax, [rdx]
+    sub rcx, 3
+    jnle .loop
     ret
 
-mov_x4:
-    xor eax, eax
+read_x4:
+    align 64
 .loop:
-    mov [rdx + rax], al
-    mov [rdx + rax + 1], al
-    mov [rdx + rax + 2], al
-    mov [rdx + rax + 3], al
-    add rax, 4
-    cmp rax, rcx
-    jb .loop
+    mov rax, [rdx]
+    mov rax, [rdx]
+    mov rax, [rdx]
+    mov rax, [rdx]
+    sub rcx, 4
+    jnle .loop
     ret
 
-mov_x5:
-    xor eax, eax
+read_x5:
+    align 64
 .loop:
-    mov [rdx + rax], al
-    mov [rdx + rax + 1], al
-    mov [rdx + rax + 2], al
-    mov [rdx + rax + 3], al
-    mov [rdx + rax + 4], al
-    add rax, 5
-    cmp rax, rcx
-    jb .loop
+    mov rax, [rdx]
+    mov rax, [rdx]
+    mov rax, [rdx]
+    mov rax, [rdx]
+    mov rax, [rdx]
+    sub rcx, 5
+    jnle .loop
     ret

@@ -1,4 +1,4 @@
-package read_ports
+package write_ports
 
 import "core:os"
 import "core:path/filepath"
@@ -9,11 +9,11 @@ import rep "../repetition_tester"
 
 
 tests := [?]Test_Function{
-    {"read_x1", read_bytes_x1},
-    {"read_x2", read_bytes_x2},
-    {"read_x3", read_bytes_x3},
-    {"read_x4", read_bytes_x4},
-    {"read_x5", read_bytes_x5},
+    {"write", write_all_bytes},
+    {"write_x2", write_all_bytes_x2},
+    {"write_x3", write_all_bytes_x3},
+    {"write_x4", write_all_bytes_x4},
+    {"write_x5", write_all_bytes_x5},
 }
 
 main :: proc() {
