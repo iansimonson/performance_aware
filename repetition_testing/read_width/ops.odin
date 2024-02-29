@@ -10,15 +10,14 @@ read_4x3 :: proc "c" (length: int, data: [^]u8) ---
 read_8x3 :: proc "c" (length: int, data: [^]u8) ---
 read_16x3 :: proc "c" (length: int, data: [^]u8) ---
 read_32x3 :: proc "c" (length: int, data: [^]u8) ---
+read_all_32x3 :: proc "c" (length: int, data: [^]u8) ---
 
 }
 
 /*
-Note I'm not doing the full bytes just in case of overflow
-when increasing e.g. 96 bytes at a time
-
-But should be fine since we're reading like 1gb the
-small amount of byte offset is inconsequential
+It's ok to overflow here because we're only reading the first
+N bytes anyway. If we were actually reading all the bytes
+we would want to not read past the end of the buffer
 */
 
 read_bytes_4x3 :: proc(tester: ^rep.Tester, params: ^rep.Read_Params) {
@@ -27,7 +26,7 @@ read_bytes_4x3 :: proc(tester: ^rep.Tester, params: ^rep.Read_Params) {
 
         rep.handle_allocation(params^, &dest)
         rep.begin_time(tester)
-        read_4x3(len(dest) - 12, raw_data(dest))
+        read_4x3(len(dest), raw_data(dest))
         rep.end_time(tester)
         rep.handle_deallocation(params^, &dest)
 
@@ -41,7 +40,7 @@ read_bytes_8x3 :: proc(tester: ^rep.Tester, params: ^rep.Read_Params) {
 
         rep.handle_allocation(params^, &dest)
         rep.begin_time(tester)
-        read_8x3(len(dest) - 24, raw_data(dest))
+        read_8x3(len(dest), raw_data(dest))
         rep.end_time(tester)
         rep.handle_deallocation(params^, &dest)
 
@@ -55,7 +54,7 @@ read_bytes_16x3 :: proc(tester: ^rep.Tester, params: ^rep.Read_Params) {
 
         rep.handle_allocation(params^, &dest)
         rep.begin_time(tester)
-        read_16x3(len(dest) - 48, raw_data(dest))
+        read_16x3(len(dest), raw_data(dest))
         rep.end_time(tester)
         rep.handle_deallocation(params^, &dest)
 
@@ -69,7 +68,26 @@ read_bytes_32x3 :: proc(tester: ^rep.Tester, params: ^rep.Read_Params) {
 
         rep.handle_allocation(params^, &dest)
         rep.begin_time(tester)
-        read_32x3(len(dest) - 96, raw_data(dest))
+        read_32x3(len(dest), raw_data(dest))
+        rep.end_time(tester)
+        rep.handle_deallocation(params^, &dest)
+
+        rep.count_bytes(tester, len(dest))
+    }
+}
+
+// NOTE: these two are not the same as above as it
+// adds a dependency on rax and (potentially) cache
+// issues (it probably won't here b/c I haven't written
+// to the buffer previously so it's just reading the
+// zero page). I was just curious
+read_all_bytes_32x3 :: proc(tester: ^rep.Tester, params: ^rep.Read_Params) {
+    for rep.is_testing(tester) {
+        dest := params.buffer
+
+        rep.handle_allocation(params^, &dest)
+        rep.begin_time(tester)
+        read_all_32x3(len(dest) - 96, raw_data(dest))
         rep.end_time(tester)
         rep.handle_deallocation(params^, &dest)
 

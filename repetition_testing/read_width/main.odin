@@ -19,6 +19,7 @@ tests := [?]Test_Function{
     {"read_8x3", read_bytes_8x3},
     {"read_16x3", read_bytes_16x3},
     {"read_32x3", read_bytes_32x3},
+    {"read_all_bytes_32x3", read_all_bytes_32x3},
 }
 
 main :: proc() {
