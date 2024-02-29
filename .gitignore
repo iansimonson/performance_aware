@@ -3,5 +3,6 @@ listing_out/
 *.pdb
 *.raddbg
 *.obj
+*.csv
 data_*.json
 diffs_*.f64
