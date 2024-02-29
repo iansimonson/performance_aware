@@ -1,5 +1,7 @@
 package loop_asm
 
+import rep "../repetition_tester"
+
 foreign import loop "./loop.asm"
 
 foreign loop {
@@ -11,67 +13,94 @@ dec_all_bytes_asm :: proc "c" (length: int) ---
 
 }
 
-write_to_all_bytes :: proc(tester: ^Rep_Tester, params: ^Read_Params) {
-    for is_testing(tester) {
+write_to_all_bytes :: proc(tester: ^rep.Tester, params: ^rep.Read_Params) {
+    for rep.is_testing(tester) {
         dest := params.buffer
+        rep.handle_allocation(params^, &dest)
 
-        begin_time(tester)
+        rep.begin_time(tester)
         for i in 0..<len(dest) {
             dest[i] = 15
         }
-        end_time(tester)
+        rep.end_time(tester)
 
-        count_bytes(tester, len(dest))
+        rep.handle_deallocation(params^, &dest)
+
+        rep.count_bytes(tester, len(dest))
     }
 }
 
-mov_all_bytes :: proc(tester: ^Rep_Tester, params: ^Read_Params) {
-    for is_testing(tester) {
+write_to_all_bytes_backwards :: proc(tester: ^rep.Tester, params: ^rep.Read_Params) {
+    for rep.is_testing(tester) {
+        dest := params.buffer
+        rep.handle_allocation(params^, &dest)
+
+        rep.begin_time(tester)
+        for i := len(dest) - 1; i >= 0; i -= 1 {
+            dest[i] = 15
+        }
+        rep.end_time(tester)
+        rep.handle_deallocation(params^, &dest)
+
+        rep.count_bytes(tester, len(dest))
+    }
+}
+
+mov_all_bytes :: proc(tester: ^rep.Tester, params: ^rep.Read_Params) {
+    for rep.is_testing(tester) {
         dest := params.buffer
 
-        begin_time(tester)
+        rep.handle_allocation(params^, &dest)
+        rep.begin_time(tester)
         mov_all_bytes_asm(len(dest), raw_data(dest))
-        end_time(tester)
+        rep.end_time(tester)
+        rep.handle_deallocation(params^, &dest)
 
-        count_bytes(tester, len(dest))
+        rep.count_bytes(tester, len(dest))
     }
 }
 
-nop_all_bytes :: proc(tester: ^Rep_Tester, params: ^Read_Params) {
-    for is_testing(tester) {
+nop_all_bytes :: proc(tester: ^rep.Tester, params: ^rep.Read_Params) {
+    for rep.is_testing(tester) {
         dest := params.buffer
 
-        begin_time(tester)
+        rep.handle_allocation(params^, &dest)
+        rep.begin_time(tester)
         nop_all_bytes_asm(len(dest))
-        end_time(tester)
+        rep.end_time(tester)
+        rep.handle_deallocation(params^, &dest)
 
-        count_bytes(tester, len(dest))
+        rep.count_bytes(tester, len(dest))
 
     }
 }
 
-cmp_all_bytes :: proc(tester: ^Rep_Tester, params: ^Read_Params) {
-    for is_testing(tester) {
+cmp_all_bytes :: proc(tester: ^rep.Tester, params: ^rep.Read_Params) {
+    for rep.is_testing(tester) {
         dest := params.buffer
 
-        begin_time(tester)
+        rep.handle_allocation(params^, &dest)
+        rep.begin_time(tester)
         cmp_all_bytes_asm(len(dest))
-        end_time(tester)
+        rep.end_time(tester)
+        rep.handle_deallocation(params^, &dest)
 
-        count_bytes(tester, len(dest))
+        rep.count_bytes(tester, len(dest))
 
     }
 }
 
-dec_all_bytes :: proc(tester: ^Rep_Tester, params: ^Read_Params) {
-    for is_testing(tester) {
+dec_all_bytes :: proc(tester: ^rep.Tester, params: ^rep.Read_Params) {
+    for rep.is_testing(tester) {
         dest := params.buffer
 
-        begin_time(tester)
+        rep.handle_allocation(params^, &dest)
+        rep.begin_time(tester)
         dec_all_bytes_asm(len(dest))
-        end_time(tester)
+        rep.end_time(tester)
+        rep.handle_deallocation(params^, &dest)
 
-        count_bytes(tester, len(dest))
+        rep.count_bytes(tester, len(dest))
 
     }
 }

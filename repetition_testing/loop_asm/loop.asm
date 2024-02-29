@@ -8,7 +8,7 @@ section .text
 
 mov_all_bytes_asm:
     xor eax, eax
-loop:
+.loop:
     mov [rdx + rax], al
     inc rax
     cmp rax, rcx
@@ -17,8 +17,8 @@ loop:
 
 nop_all_bytes_asm:
     xor eax, eax
-loop:
-    nop dword ptr [rax]
+.loop:
+    nop dword [rax]
     inc rax
     cmp rax, rcx
     jb .loop
@@ -26,15 +26,14 @@ loop:
 
 cmp_all_bytes_asm:
     xor eax, eax
-loop:
+.loop:
     inc rax
     cmp rax, rcx
     jb .loop
     ret
 
 dec_all_bytes_asm:
-    xor eax, eax
-loop:
+.loop:
     dec rcx
     jnz .loop
     ret

@@ -146,11 +146,11 @@ handle_allocation :: proc(params: Read_Params, buffer: ^[]u8) {
     case .None:
         /* nothing */
     case .Malloc:
-        /*ptr := windows.VirtualAlloc(nil, windows.SIZE_T(params.expected_bufsize), windows.MEM_RESERVE | windows.MEM_COMMIT, windows.PAGE_READWRITE)
+        ptr := windows.VirtualAlloc(nil, windows.SIZE_T(params.expected_bufsize), windows.MEM_RESERVE | windows.MEM_COMMIT, windows.PAGE_READWRITE)
         assert(ptr != nil)
         buffer^ = (cast([^]u8) ptr)[:params.expected_bufsize]
-        assert(len(buffer) != 0)*/
-        buffer^ = make([]u8, params.expected_bufsize)
+        assert(len(buffer) == params.expected_bufsize)
+        // buffer^ = make([]u8, params.expected_bufsize)
     case:
         fmt.eprintln("ERROR: unrecognized allocation type")
     }
@@ -161,9 +161,9 @@ handle_deallocation :: proc(params: Read_Params, buffer: ^[]u8) {
     case .None:
         /* nothing */
     case .Malloc:
-        /*ok := windows.VirtualFree(raw_data(buffer^), 0, windows.MEM_RELEASE)
-        assert(ok == true)*/
-        delete(buffer^)
+        ok := windows.VirtualFree(raw_data(buffer^), 0, windows.MEM_RELEASE)
+        assert(ok == true)
+        // delete(buffer^)
     case:
         fmt.eprintln("ERROR: unrecognized allocation type")
     }
