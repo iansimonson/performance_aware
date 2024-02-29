@@ -10,7 +10,7 @@ read_4x3 :: proc "c" (length: int, data: [^]u8) ---
 read_8x3 :: proc "c" (length: int, data: [^]u8) ---
 read_16x3 :: proc "c" (length: int, data: [^]u8) ---
 read_32x3 :: proc "c" (length: int, data: [^]u8) ---
-read_all_32x3 :: proc "c" (length: int, data: [^]u8) ---
+read_all_32x6 :: proc "c" (length: int, data: [^]u8) ---
 
 }
 
@@ -81,13 +81,13 @@ read_bytes_32x3 :: proc(tester: ^rep.Tester, params: ^rep.Read_Params) {
 // issues (it probably won't here b/c I haven't written
 // to the buffer previously so it's just reading the
 // zero page). I was just curious
-read_all_bytes_32x3 :: proc(tester: ^rep.Tester, params: ^rep.Read_Params) {
+read_all_bytes_32x6 :: proc(tester: ^rep.Tester, params: ^rep.Read_Params) {
     for rep.is_testing(tester) {
         dest := params.buffer
 
         rep.handle_allocation(params^, &dest)
         rep.begin_time(tester)
-        read_all_32x3(len(dest) - 96, raw_data(dest))
+        read_all_32x6(len(dest) - 192, raw_data(dest))
         rep.end_time(tester)
         rep.handle_deallocation(params^, &dest)
 

@@ -2,7 +2,7 @@ global read_4x3
 global read_8x3
 global read_16x3
 global read_32x3
-global read_all_32x3
+global read_all_32x6
 
 section .text
 
@@ -54,14 +54,17 @@ read_32x3:
     jb .loop
     ret
 
-read_all_32x3:
+read_all_32x6:
     align 64
     xor rax, rax
 .loop:
     vmovdqu ymm0, [rdx + rax]
     vmovdqu ymm1, [rdx + rax + 32]
     vmovdqu ymm2, [rdx + rax + 64]
-    add rax, 96
+    vmovdqu ymm3, [rdx + rax + 96]
+    ; vmovdqu ymm4, [rdx + rax + 128]
+    ; vmovdqu ymm5, [rdx + rax + 160]
+    add rax, 128
     cmp rax, rcx
     jb .loop
     ret

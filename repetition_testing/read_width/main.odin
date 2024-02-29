@@ -4,6 +4,7 @@ import "core:os"
 import "core:path/filepath"
 import "core:fmt"
 import "core:strconv"
+import "core:slice"
 
 import rep "../repetition_tester"
 
@@ -19,7 +20,7 @@ tests := [?]Test_Function{
     {"read_8x3", read_bytes_8x3},
     {"read_16x3", read_bytes_16x3},
     {"read_32x3", read_bytes_32x3},
-    {"read_all_bytes_32x3", read_all_bytes_32x3},
+    {"read_all_bytes_32x6", read_all_bytes_32x6},
 }
 
 main :: proc() {
