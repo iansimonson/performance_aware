@@ -21,3 +21,20 @@ what is seen from Casey's version
 
 NOTE: I don't call anything _test because that's a special
 file suffix in odin (though it doesn't apply to directories)
+
+## Linux
+
+These tests now work with linux and windows, however linux
+by default will return EACCESS
+
+You can either run under sudo OR tell the kernel to allow
+querying the perf counters e.g. 
+
+```bash
+# default value seems to be 2
+sudo sh -c 'echo 1 > /proc/sys/kernel/perf_event_paranoid'
+```
+
+It ALSO required doing totally different asm because linux
+has a completely different x64 calling convention (I guess
+libc knows how to differentiate this)
