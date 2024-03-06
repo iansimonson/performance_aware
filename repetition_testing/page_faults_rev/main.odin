@@ -23,23 +23,18 @@ main :: proc() {
             total_mem := num_pages * 4096
             touch_mem := touch_count * 4096
 
-            ptr := windows.VirtualAlloc(
-                nil,
-                uint(total_mem),
-                windows.MEM_RESERVE | windows.MEM_COMMIT,
-                windows.PAGE_READWRITE,
-            )
-            if ptr == nil {
+            data_slice := rep._platform_alloc(total_mem)
+            if len(data_slice) == 0 {
                 fmt.eprintln("Error allocating memory")
                 break
             }
             start_fault_count := rep.page_fault_count()
-            data := cast([^]u8)ptr
+            data := raw_data(data_slice)
             for i in 0 ..< touch_mem {
                 data[touch_mem - 1 - i] = u8(i)
             }
             end_fault_count := rep.page_fault_count()
-            windows.VirtualFree(ptr, 0, windows.MEM_RELEASE)
+            rep._platform_free(data_slice)
 
             fault_count := end_fault_count - start_fault_count
             fmt.printf("%v, %v, %v, %v\n", num_pages, touch_count, fault_count, fault_count - touch_count)

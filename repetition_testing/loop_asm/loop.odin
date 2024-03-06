@@ -2,7 +2,11 @@ package loop_asm
 
 import rep "../repetition_tester"
 
+when ODIN_OS == .Windows {
 foreign import loop "./loop.asm"
+} else when ODIN_OS == .Linux {
+foreign import loop "./loop_linux.asm"
+}
 
 foreign loop {
 
