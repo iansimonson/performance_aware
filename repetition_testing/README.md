@@ -38,3 +38,21 @@ sudo sh -c 'echo 1 > /proc/sys/kernel/perf_event_paranoid'
 It ALSO required doing totally different asm because linux
 has a completely different x64 calling convention (I guess
 libc knows how to differentiate this)
+
+## Results
+
+### Page Faults
+
+On windows page faulting was the same as in Casey's examples, no
+read-ahead for 16 then read ahead 16 every 16 until you page-fault
+the next level up
+
+On linux, there seems to be no page read-ahead by default
+but there is the madvise function
+
+
+### Read/Write Ports
+
+Processor | Read Ports | Write Ports
+ryzen 5800x | 3 | 2
+i7-1185G7 | 2 | 2
