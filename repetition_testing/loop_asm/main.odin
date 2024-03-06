@@ -31,6 +31,7 @@ main :: proc() {
         usage()
         os.exit(1)
     }
+    rep.init_harness()
 
     size := pages * 4096
 

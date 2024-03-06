@@ -2,7 +2,6 @@ package repetition_tester
 
 import "core:fmt"
 import "core:time"
-import "core:sys/windows"
 
 Read_Params :: struct {
     buffer: []u8,
@@ -50,8 +49,13 @@ Tester :: struct {
     results: Test_Results,
 }
 
+@(deferred_none = uninit_harness)
 init_harness :: proc() {
-    global_process_handle = OpenProcess(PROCESS_VM_READ | PROCESS_QUERY_INFORMATION, false, windows.GetCurrentProcessId())
+    _platform_init()
+}
+
+uninit_harness :: proc() {
+    _platform_uninit()
 }
 
 error :: proc(tester: ^Tester, message: string) {
@@ -146,11 +150,8 @@ handle_allocation :: proc(params: Read_Params, buffer: ^[]u8) {
     case .None:
         /* nothing */
     case .Malloc:
-        ptr := windows.VirtualAlloc(nil, windows.SIZE_T(params.expected_bufsize), windows.MEM_RESERVE | windows.MEM_COMMIT, windows.PAGE_READWRITE)
-        assert(ptr != nil)
-        buffer^ = (cast([^]u8) ptr)[:params.expected_bufsize]
+        buffer^ = _platform_alloc(params.expected_bufsize)
         assert(len(buffer) == params.expected_bufsize)
-        // buffer^ = make([]u8, params.expected_bufsize)
     case:
         fmt.eprintln("ERROR: unrecognized allocation type")
     }
@@ -161,9 +162,7 @@ handle_deallocation :: proc(params: Read_Params, buffer: ^[]u8) {
     case .None:
         /* nothing */
     case .Malloc:
-        ok := windows.VirtualFree(raw_data(buffer^), 0, windows.MEM_RELEASE)
-        assert(ok == true)
-        // delete(buffer^)
+        _platform_free(buffer^)
     case:
         fmt.eprintln("ERROR: unrecognized allocation type")
     }
@@ -174,9 +173,7 @@ cpu_tick_nsec :: proc() -> int {
 }
 
 page_fault_count :: proc() -> int {
-    counters: PROCESS_MEMORY_COUNTERS
-    GetProcessMemoryInfo(global_process_handle, &counters, size_of(counters))
-    return int(counters.PageFaultCount)
+    return _page_fault_count()
 }
 
 print_value :: proc(label: string, values: Repetition_Value) {

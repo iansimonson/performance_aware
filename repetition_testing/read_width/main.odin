@@ -38,6 +38,8 @@ main :: proc() {
         os.exit(1)
     }
 
+    rep.init_harness()
+
     size := pages * 4096
 
     params: rep.Read_Params

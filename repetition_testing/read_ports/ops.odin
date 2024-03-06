@@ -2,7 +2,11 @@ package read_ports
 
 import rep "../repetition_tester"
 
-foreign import ops "./ops.asm"
+when ODIN_OS == .Windows {
+    foreign import ops "./ops.asm"
+} else when ODIN_OS == .Linux {
+    foreign import ops "./ops_linux.asm"
+}
 
 foreign ops {
 
