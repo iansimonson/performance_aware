@@ -59,6 +59,7 @@ immediately so there were no page faults while writing later
 
 ### Read/Write Ports
 
-Processor | Read Ports | Write Ports
-ryzen 5800x | 3 | 2
-i7-1185G7 | 2 | 2
+|Processor | Read Ports | Write Ports|
+|---|---|---|
+|AMD ryzen 5800x | 3 | 2 |
+|Intel i7-1185G7 | 2 | 2 |
