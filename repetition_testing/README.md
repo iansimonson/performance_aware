@@ -48,7 +48,11 @@ read-ahead for 16 then read ahead 16 every 16 until you page-fault
 the next level up
 
 On linux, there seems to be no page read-ahead by default
-but there is the madvise function
+but there is the madvise function.
+
+With `.SEQUENTIAL` and `.WILLNEED` I could not get linux to pagefault-ahead
+on my system. However with `.POPULATE_WRITE` we faulted all 4096 pages
+immediately so there were no page faults while writing later
 
 
 ### Read/Write Ports

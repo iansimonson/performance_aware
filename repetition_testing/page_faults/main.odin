@@ -4,6 +4,7 @@ import "core:fmt"
 import "core:path/filepath"
 import "core:os"
 import "core:sys/windows"
+import "core:sys/linux"
 import "core:strconv"
 
 import rep "../repetition_tester"
@@ -26,6 +27,12 @@ main :: proc() {
             data_slice := rep._platform_alloc(total_mem)
             data := raw_data(data_slice)
             start_fault_count := rep.page_fault_count()
+            when ODIN_OS == .Linux {
+                ret := linux.madvise(raw_data(data_slice), len(data_slice), .POPULATE_WRITE)
+                if ret != {} {
+                    fmt.panicf("Got %v\n", ret)
+                }
+            }
             for i in 0 ..< touch_mem {
                 data[i] = u8(i)
             }

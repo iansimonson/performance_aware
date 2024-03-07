@@ -11,6 +11,7 @@ _platform_init :: proc() {
         size = size_of(linux.Perf_Event_Attr),
         config = {sw = linux.Perf_Software_Id.PAGE_FAULTS},
     }
+    // This process (0) on any cpu (-1) and we don't care about the group (-1) no flags ({})
     fd, err := linux.perf_event_open(&attr, 0, -1, -1, {})
     assert(err == linux.Errno{})
     assert(fd != linux.Fd(-1))
