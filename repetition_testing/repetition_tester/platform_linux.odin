@@ -3,23 +3,10 @@ package repetition_tester
 import "core:mem"
 import "core:sys/linux"
 
-global_process_handle: linux.Fd
-
 _platform_init :: proc() {
-    attr := linux.Perf_Event_Attr {
-        type = .SOFTWARE,
-        size = size_of(linux.Perf_Event_Attr),
-        config = {sw = linux.Perf_Software_Id.PAGE_FAULTS},
-    }
-    // This process (0) on any cpu (-1) and we don't care about the group (-1) no flags ({})
-    fd, err := linux.perf_event_open(&attr, 0, -1, -1, {})
-    assert(err == linux.Errno{})
-    assert(fd != linux.Fd(-1))
-    global_process_handle = fd
 }
 
 _platform_uninit :: proc() {
-    linux.close(global_process_handle)
 }
 
 _platform_alloc :: proc(size: int) -> []byte {
@@ -33,10 +20,18 @@ _platform_free :: proc(buf: []byte) {
     assert(err == nil)
 }
 
+/*
+**NOTE**: We are using getrusage here not
+reading perf_events becuase for some reason
+they did not include any kernel events at all
+even without exclude_kernel set
+
+that resulted in extra page counts being negative
+which was clearly incorrect
+*/
 _page_fault_count :: proc() -> int {
-    count: int
-    read, err := linux.read(global_process_handle, mem.ptr_to_bytes(&count))
-    assert(read == size_of(count))
-    assert(err == nil)
-    return count
+    usage: linux.RUsage
+    err := linux.getrusage({}, &usage)
+    assert(err == {})
+    return usage.minflt_word + usage.majflt_word
 }
