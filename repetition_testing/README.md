@@ -39,6 +39,8 @@ It ALSO required doing totally different asm because linux
 has a completely different x64 calling convention (I guess
 libc knows how to differentiate this)
 
+I found this helpful even if not official: [Red Team Notes](https://www.ired.team/miscellaneous-reversing-forensics/windows-kernel-internals/linux-x64-calling-convention-stack-frame)
+
 ## Results
 
 ### Page Faults
