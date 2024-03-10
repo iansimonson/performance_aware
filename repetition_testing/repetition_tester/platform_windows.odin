@@ -38,12 +38,12 @@ _platform_uninit :: proc() {
 _platform_alloc :: proc(size: int) -> []byte {
     ptr := windows.VirtualAlloc(
         nil,
-        windows.SIZE_T(params.expected_bufsize),
+        windows.SIZE_T(size),
         windows.MEM_RESERVE | windows.MEM_COMMIT,
         windows.PAGE_READWRITE,
     )
     assert(ptr != nil)
-    return (cast([^]u8)ptr)[:params.expected_bufsize]
+    return (cast([^]u8)ptr)[:size]
 }
 
 _platform_free :: proc(buf: []byte) {
@@ -52,7 +52,6 @@ _platform_free :: proc(buf: []byte) {
 }
 
 _page_fault_count :: proc() -> int {
-    return _page_fault_count()
     counters: PROCESS_MEMORY_COUNTERS
     GetProcessMemoryInfo(global_process_handle, &counters, size_of(counters))
     return int(counters.PageFaultCount)
