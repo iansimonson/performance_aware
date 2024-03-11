@@ -2,7 +2,11 @@ package read_width
 
 import rep "../repetition_tester"
 
+when ODIN_OS == .Windows {
 foreign import ops "./ops.asm"
+} else when ODIN_OS == .Linux {
+foreign import ops "./ops_linux.asm"
+}
 
 foreign ops {
 
@@ -10,6 +14,11 @@ read_4x3 :: proc "c" (length: int, data: [^]u8) ---
 read_8x3 :: proc "c" (length: int, data: [^]u8) ---
 read_16x3 :: proc "c" (length: int, data: [^]u8) ---
 read_32x3 :: proc "c" (length: int, data: [^]u8) ---
+
+when ODIN_OS == .Linux {
+read_64x2 :: proc "c" (length: int, data: [^]u8) ---
+}
+
 read_all_32x6 :: proc "c" (length: int, data: [^]u8) ---
 
 }
@@ -92,5 +101,21 @@ read_all_bytes_32x6 :: proc(tester: ^rep.Tester, params: ^rep.Read_Params) {
         rep.handle_deallocation(params^, &dest)
 
         rep.count_bytes(tester, len(dest))
+    }
+}
+
+when ODIN_OS == .Linux {
+    read_bytes_64x2 :: proc(tester: ^rep.Tester, params: ^rep.Read_Params) {
+        for rep.is_testing(tester) {
+            dest := params.buffer
+
+            rep.handle_allocation(params^, &dest)
+            rep.begin_time(tester)
+            read_64x2(len(dest), raw_data(dest))
+            rep.end_time(tester)
+            rep.handle_deallocation(params^, &dest)
+
+            rep.count_bytes(tester, len(dest))
+        }
     }
 }

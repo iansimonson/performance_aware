@@ -15,12 +15,22 @@ so instead of 4x2 like Casey I am doing
 only AVX2 not AVX512
 */
 
+when ODIN_OS == .Windows {
 tests := [?]Test_Function{
     {"read_4x3", read_bytes_4x3},
     {"read_8x3", read_bytes_8x3},
     {"read_16x3", read_bytes_16x3},
     {"read_32x3", read_bytes_32x3},
     {"read_all_bytes_32x6", read_all_bytes_32x6},
+}
+} else when ODIN_OS == .Linux {
+tests := [?]Test_Function{
+    //{"read_4x3", read_bytes_4x3},
+    //{"read_8x3", read_bytes_8x3},
+    {"read_16x3", read_bytes_16x3},
+    {"read_32x3", read_bytes_32x3},
+    //{"read_64x2", read_bytes_64x2},
+}
 }
 
 main :: proc() {
