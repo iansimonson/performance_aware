@@ -21,5 +21,6 @@ NOTE: these work on MacOS Apple Sillicon but require a couple patches to the Odi
 1. `verify_binary` - small program to verify that a particular binary is identical to another one
 1. `query_perf_counters` - literally just calls `windows.QueryPerformanceCounter` and `windows.QueryPerformanceFrequency` for the purposes of stepping through the asm with a debugger
 1. `repetition_testing/*` - different repetition tests all using the same harness
+1. `abi_tester` - just does a couple C function calls to verify the ABI / debugging purposes
 
 Since I was starting later and the ASM course was done already, I only went up to decoding Add/Sub, etc. I feel comfortable _enough_ with asm that I'll come back to it later if I feel like it
