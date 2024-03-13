@@ -10,12 +10,15 @@ _platform_uninit :: proc() {
 
 _platform_alloc :: proc(size: int) -> []byte {
     ptr := darwin.syscall_mmap(nil, u64(size), darwin.PROT_READ | darwin.PROT_WRITE, darwin.MAP_ANONYMOUS | darwin.MAP_PRIVATE, -1, 0)
-    assert(ptr != nil, "Error mmaping memory")
+    ptr_no := int(uintptr(ptr))
+    assert(ptr_no != -1, "Error mmaping memory")
     return (cast([^]byte) ptr)[:size]
 }
 
 _platform_free :: proc(buf: []byte) {
-    err_int := darwin.syscall_munmap(raw_data(buf), u64(len(buf)))
+    ptr := raw_data(buf)
+    l := u64(len(buf))
+    err_int := darwin.syscall_munmap(ptr, l)
     assert(err_int == 0)
 }
 

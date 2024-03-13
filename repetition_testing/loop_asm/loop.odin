@@ -6,6 +6,8 @@ when ODIN_OS == .Windows {
 foreign import loop "./loop.asm"
 } else when ODIN_OS == .Linux {
 foreign import loop "./loop_linux.asm"
+} else when ODIN_OS == .Darwin {
+foreign import loop "./loop_darwin.asm"
 }
 
 foreign loop {
