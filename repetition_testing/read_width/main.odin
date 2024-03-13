@@ -10,26 +10,32 @@ import rep "../repetition_tester"
 
 /*
 I am running on a ryzen 7 5800x
-so instead of 4x2 like Casey I am doing
-4x3 since I have 3 read ports but also
-only AVX2 not AVX512
+so instead of 4 like Casey I am doing
+4 since I have 3 read ports but also
+only AV not AVX512
 */
 
 when ODIN_OS == .Windows {
 tests := [?]Test_Function{
-    {"read_4x3", read_bytes_4x3},
-    {"read_8x3", read_bytes_8x3},
-    {"read_16x3", read_bytes_16x3},
-    {"read_32x3", read_bytes_32x3},
+    {"read_4", read_bytes_4},
+    {"read_8", read_bytes_8},
+    {"read_16", read_bytes_16},
+    {"read_32", read_bytes_32},
     {"read_all_bytes_32x6", read_all_bytes_32x6},
 }
 } else when ODIN_OS == .Linux {
 tests := [?]Test_Function{
-    //{"read_4x3", read_bytes_4x3},
-    //{"read_8x3", read_bytes_8x3},
-    {"read_16x3", read_bytes_16x3},
-    {"read_32x3", read_bytes_32x3},
-    //{"read_64x2", read_bytes_64x2},
+    //{"read_4", read_bytes_4},
+    //{"read_8", read_bytes_8},
+    {"read_16", read_bytes_16},
+    {"read_32", read_bytes_32},
+    //{"read_64", read_bytes_64},
+}
+} else when ODIN_OS == .Darwin {
+tests := [?]Test_Function{
+    {"read_4", read_bytes_4},
+    {"read_8", read_bytes_8},
+    {"read_16", read_bytes_16},
 }
 }
 
@@ -54,6 +60,9 @@ main :: proc() {
 
     params: rep.Read_Params
     params.buffer = make([]u8, size)
+    for &v, i in params.buffer {
+        v = u8(i)
+    }
     params.expected_bufsize = size
     defer delete(params.buffer)
 

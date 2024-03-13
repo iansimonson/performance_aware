@@ -7,3 +7,5 @@ listing_out/
 *.csv
 data_*.json
 diffs_*.f64
+*.dSYM/
+*.bin

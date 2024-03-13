@@ -6,20 +6,25 @@ when ODIN_OS == .Windows {
 foreign import ops "./ops.asm"
 } else when ODIN_OS == .Linux {
 foreign import ops "./ops_linux.asm"
+} else when ODIN_OS == .Darwin {
+foreign import ops "./ops_darwin.asm"
 }
 
 foreign ops {
 
-read_4x3 :: proc "c" (length: int, data: [^]u8) ---
-read_8x3 :: proc "c" (length: int, data: [^]u8) ---
-read_16x3 :: proc "c" (length: int, data: [^]u8) ---
-read_32x3 :: proc "c" (length: int, data: [^]u8) ---
+read_4 :: proc "c" (length: int, data: [^]u8) ---
+read_8 :: proc "c" (length: int, data: [^]u8) ---
+read_16 :: proc "c" (length: int, data: [^]u8) ---
 
-when ODIN_OS == .Linux {
-read_64x2 :: proc "c" (length: int, data: [^]u8) ---
+when ODIN_OS == .Windows {
+read_32 :: proc "c" (length: int, data: [^]u8) ---
+read_all_32x6 :: proc "c" (length: int, data: [^]u8) ---
 }
 
-read_all_32x6 :: proc "c" (length: int, data: [^]u8) ---
+when ODIN_OS == .Linux {
+read_32 :: proc "c" (length: int, data: [^]u8) ---
+read_64 :: proc "c" (length: int, data: [^]u8) ---
+}
 
 }
 
@@ -29,13 +34,13 @@ N bytes anyway. If we were actually reading all the bytes
 we would want to not read past the end of the buffer
 */
 
-read_bytes_4x3 :: proc(tester: ^rep.Tester, params: ^rep.Read_Params) {
+read_bytes_4 :: proc(tester: ^rep.Tester, params: ^rep.Read_Params) {
     for rep.is_testing(tester) {
         dest := params.buffer
 
         rep.handle_allocation(params^, &dest)
         rep.begin_time(tester)
-        read_4x3(len(dest), raw_data(dest))
+        read_4(len(dest), raw_data(dest))
         rep.end_time(tester)
         rep.handle_deallocation(params^, &dest)
 
@@ -43,13 +48,13 @@ read_bytes_4x3 :: proc(tester: ^rep.Tester, params: ^rep.Read_Params) {
     }
 }
 
-read_bytes_8x3 :: proc(tester: ^rep.Tester, params: ^rep.Read_Params) {
+read_bytes_8 :: proc(tester: ^rep.Tester, params: ^rep.Read_Params) {
     for rep.is_testing(tester) {
         dest := params.buffer
 
         rep.handle_allocation(params^, &dest)
         rep.begin_time(tester)
-        read_8x3(len(dest), raw_data(dest))
+        read_8(len(dest), raw_data(dest))
         rep.end_time(tester)
         rep.handle_deallocation(params^, &dest)
 
@@ -57,13 +62,13 @@ read_bytes_8x3 :: proc(tester: ^rep.Tester, params: ^rep.Read_Params) {
     }
 }
 
-read_bytes_16x3 :: proc(tester: ^rep.Tester, params: ^rep.Read_Params) {
+read_bytes_16 :: proc(tester: ^rep.Tester, params: ^rep.Read_Params) {
     for rep.is_testing(tester) {
         dest := params.buffer
 
         rep.handle_allocation(params^, &dest)
         rep.begin_time(tester)
-        read_16x3(len(dest), raw_data(dest))
+        read_16(len(dest), raw_data(dest))
         rep.end_time(tester)
         rep.handle_deallocation(params^, &dest)
 
@@ -71,19 +76,23 @@ read_bytes_16x3 :: proc(tester: ^rep.Tester, params: ^rep.Read_Params) {
     }
 }
 
-read_bytes_32x3 :: proc(tester: ^rep.Tester, params: ^rep.Read_Params) {
+when ODIN_OS == .Windows || ODIN_OS == .Linux {
+read_bytes_32 :: proc(tester: ^rep.Tester, params: ^rep.Read_Params) {
     for rep.is_testing(tester) {
         dest := params.buffer
 
         rep.handle_allocation(params^, &dest)
         rep.begin_time(tester)
-        read_32x3(len(dest), raw_data(dest))
+        read_32(len(dest), raw_data(dest))
         rep.end_time(tester)
         rep.handle_deallocation(params^, &dest)
 
         rep.count_bytes(tester, len(dest))
     }
 }
+}
+
+when ODIN_OS == .Windows {
 
 // NOTE: these two are not the same as above as it
 // adds a dependency on rax and (potentially) cache
@@ -103,15 +112,16 @@ read_all_bytes_32x6 :: proc(tester: ^rep.Tester, params: ^rep.Read_Params) {
         rep.count_bytes(tester, len(dest))
     }
 }
+}
 
 when ODIN_OS == .Linux {
-    read_bytes_64x2 :: proc(tester: ^rep.Tester, params: ^rep.Read_Params) {
+    read_bytes_64 :: proc(tester: ^rep.Tester, params: ^rep.Read_Params) {
         for rep.is_testing(tester) {
             dest := params.buffer
 
             rep.handle_allocation(params^, &dest)
             rep.begin_time(tester)
-            read_64x2(len(dest), raw_data(dest))
+            read_64(len(dest), raw_data(dest))
             rep.end_time(tester)
             rep.handle_deallocation(params^, &dest)
 
