@@ -8,12 +8,27 @@ import "core:strconv"
 import rep "../repetition_tester"
 
 
+when ODIN_OS != .Darwin {
 tests := [?]Test_Function{
     {"read_x1", read_bytes_x1},
     {"read_x2", read_bytes_x2},
     {"read_x3", read_bytes_x3},
     {"read_x4", read_bytes_x4},
     {"read_x5", read_bytes_x5},
+}
+} else {
+tests := [?]Test_Function{
+    {"read_x1", read_bytes_x1},
+    {"read_x2", read_bytes_x2},
+    {"read_x3", read_bytes_x3},
+    {"read_x4", read_bytes_x4},
+    {"read_x5", read_bytes_x5},
+    // these are ARM specific tests
+    {"read_v1", read_bytes_x1},
+    {"read_v2", read_bytes_x2},
+    {"read_v3", read_bytes_x3},
+    {"read_v4", read_bytes_x4},
+}
 }
 
 main :: proc() {

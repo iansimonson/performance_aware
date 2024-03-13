@@ -6,6 +6,8 @@ when ODIN_OS == .Windows {
     foreign import ops "./ops.asm"
 } else when ODIN_OS == .Linux {
     foreign import ops "./ops_linux.asm"
+} else when ODIN_OS == .Darwin {
+    foreign import ops "./ops_darwin.asm"
 }
 
 foreign ops {

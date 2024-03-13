@@ -63,3 +63,11 @@ immediately so there were no page faults while writing later
 |---|---|---|
 |AMD ryzen 5800x | 3 | 2 |
 |Intel i7-1185G7 | 2 | 2 |
+|M3 macbook air  | 3 | 2 |
+
+**NOTE:** interestingly, arm64 has `ld1 {v0, v1, v2, v3} [x1]` to load
+512 bits of memory at once. HOWEVER this is actually just some shorthand
+it looks like to reduce frontend decoding maybe. It is STILL
+limited by the number of read ports so `ld1 {v0, v1, v2} [x1]` has the same
+performance in the read_port test at least. I'm sure there are ways to get
+more perf out of it
