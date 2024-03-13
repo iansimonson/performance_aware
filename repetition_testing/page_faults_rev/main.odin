@@ -3,11 +3,15 @@ package page_faults
 import "core:fmt"
 import "core:path/filepath"
 import "core:os"
-import "core:sys/windows"
-import "core:sys/linux"
 import "core:strconv"
 
 import rep "../repetition_tester"
+
+when ODIN_OS == .Darwin {
+    PAGE_SIZE :: 16 * 1024 
+} else {
+    PAGE_SIZE :: 4 * 1024
+}
 
 main :: proc() {
     if len(os.args) >= 2 {
@@ -21,8 +25,8 @@ main :: proc() {
         rep.init_harness()
 
         for touch_count in 0 ..< num_pages {
-            total_mem := num_pages * 4096
-            touch_mem := touch_count * 4096
+            total_mem := num_pages * PAGE_SIZE
+            touch_mem := touch_count * PAGE_SIZE
 
             data_slice := rep._platform_alloc(total_mem)
             if len(data_slice) == 0 {
