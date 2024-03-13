@@ -3,11 +3,17 @@ Performance Aware Programs
 
 Implementations of the homework for the various parts of the performance aware course
 
+Reference impls / homeworks are in the [Computer Enhance Github](https://github.com/cmuratori/computer_enhance)
+
 Written in Odin
 
 Each application can be built using `odin build <dir>` e.g. `odin build ./gen_haversines`
 
-These should all work on any OS other than `query_perf_counters` which specifically uses the windows intrinsics for the purposes of stepping through asm in a debugger (one of the homeworks). But note since the course uses RDTSC I do so here also so it will only work as-is on x86 systems
+These should all work on any OS other than `query_perf_counters` which specifically uses the windows intrinsics for the purposes of stepping through asm in a debugger (one of the homeworks). But note since the course uses RDTSC I do so here
+
+Each repetition testing binary can be built in a similar way with e.g. `odin build repetition_testing/read_ports`
+
+NOTE: these work on MacOS Apple Sillicon but require a couple patches to the Odin core library for `munmap` and `getrusage` see [3272](https://github.com/odin-lang/Odin/pull/3272) and [3274](https://github.com/odin-lang/Odin/pull/3274) if you want to patch your odin core library yourself
 
 1. `gen_haversines` - generates test code
 1. `compute_haversines` - the main code for pt3 that we are profiling and trying to improve
