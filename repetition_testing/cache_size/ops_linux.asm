@@ -16,8 +16,8 @@ read_all_128:
     vmovdqu ymm2, [rsi + rcx + 64]
     vmovdqu ymm3, [rsi + rcx + 96]
     add rax, 128
-    add rdx, 128
-    and rdx, rdx
+    add rcx, 128
+    and rcx, rdx
     cmp rax, rdi
     jb .loop
     ret
