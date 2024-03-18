@@ -26,5 +26,5 @@ _page_fault_count :: proc() -> int {
     usage: darwin.RUsage
     err_int := darwin.syscall_getrusage(0, &usage)
     assert(err_int == 0)
-    return usage.minflt_word + usage.majflt_word
+    return int(usage.ru_minflt + usage.ru_majflt)
 }
