@@ -13,8 +13,6 @@ These should all work on any OS other than `query_perf_counters` which specifica
 
 Each repetition testing binary can be built in a similar way with e.g. `odin build repetition_testing/read_ports`
 
-NOTE: these work on MacOS Apple Sillicon but require a couple patches to the Odin core library for `munmap` and `getrusage` see [3272](https://github.com/odin-lang/Odin/pull/3272) and [3274](https://github.com/odin-lang/Odin/pull/3274) if you want to patch your odin core library yourself
-
 1. `gen_haversines` - generates test code
 1. `compute_haversines` - the main code for pt3 that we are profiling and trying to improve
 1. `sim8086` - binary decoding of 8086 machine code
